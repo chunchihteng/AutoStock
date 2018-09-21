@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from matplotlib.dates import DateFormatter, WeekdayLocator, \
     DayLocator, MONDAY, date2num, num2date
-from matplotlib.finance import candlestick_ohlc
+from mpl_finance import candlestick_ohlc
 
 
 
@@ -62,7 +62,7 @@ class BuySignal():
         s3 = count_max(data.updown, idx) >= self.updown_thr
         s4 = self.pre_bar(data, idx)
         # s4 = data.MA20[idx-2-19] < data.MA20[idx-1-19]
-        return s1 and (s2) and s3#or s2 or s3
+        return s1 and (s2 and s4) and s3#or s2 or s3
     def pre_bar(self, data, idx):
     	if data.close[idx-1] + self.bar_del >= data.open[idx-1]:
     		return True

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from matplotlib.dates import DateFormatter, WeekdayLocator, \
     DayLocator, MONDAY, date2num, num2date
-from matplotlib.finance import candlestick_ohlc
+#from matplotlib.finance import candlestick_ohlc
 import datetime
 import numpy as np
 from numpy import genfromtxt
@@ -13,7 +13,7 @@ import time
 from draw import *
 from utils import *
 import matplotlib.pyplot as plt
-from matplotlib.finance import candlestick_ohlc
+from mpl_finance import candlestick_ohlc
 import os
 from Analyze import *
 from Pattern import *
@@ -107,7 +107,7 @@ def task(c, e1, e2, e3, sp, sl, d, days, buy_func, sell_func):
                 
             #print "cur", i, days.date[dt].open[i], now_long_price
             if s.run_val(now_long_price, days.date[dt].close[i-1], days.date[dt], i) == True:
-                delta = np.sum(days.date[dt].open[i]-np.array(now_long_price))-4.5*len(now_long_price)
+                delta = np.sum(days.date[dt].open[i]-np.array(now_long_price))-1.5*len(now_long_price)
                 earn += delta
                 if is_print == True:
                     print "earn", days.date[dt].open[i], delta
@@ -121,37 +121,37 @@ def task(c, e1, e2, e3, sp, sl, d, days, buy_func, sell_func):
     all_earn = np.array(all_earn)*50
 #     print all_earn
 #     print (e1, e2, e3), all_earn
-    return (e1, e2, e3), (round(np.mean(all_earn), 2), round(np.min(all_earn), 2), round(np.max(all_earn), 2), np.sum([1 for e in all_earn if e >=0]), np.sum([1 for e in all_earn if e <=0]))
+    return (e1, e2, e3), (round(np.mean(all_earn), 2), round(np.min(all_earn), 2), round(np.max(all_earn), 2), np.sum([1 for e in all_earn if e >0]), np.sum([1 for e in all_earn if e <0]))
 
 def eval(days, buy_func, sell_func):
     print buy_func, sell_func
-    sps = [4] 
-    sps = range(0, 60)
-    sls = [14] 
-    sls = range(0, 60)
-    ds = [4] 
-    ds = range(-10, 11)
+    sps = [8,9,10] 
+    sps = range(0, 20)
+    sls = [5,6,7] 
+    sls = range(0, 20)
+#    ds = [] 
+    ds = range(-30, 10)
     score = np.zeros((len(sps), len(sls), len(ds)))
     is_print = False
     max_earn = -500000
-    
-                
-    with ThreadPool(10) as pool:
+    f = open('log.txt', 'w') 
+    with ThreadPool(20) as pool:
         for e, v in pool.process_items_concurrently(sps, sls, ds, days, buy_func, sell_func, process_func=task, max_items_in_flight=100):
-            if v[0] >= 0:
-                print e, v 
+#            if v[0] >= 0:
+            print e, v
+            f.write('-'.join([str(ee) for ee in list(e)])+','+','.join([str(vv) for vv in list(v)])+'\n')
             score[e[0], e[1], e[2]] = v[0]
-            if e[2] == ds[-1]:
-                print e
+#            if e[2] == ds[-1]:
+ #               print e
 #             if e[1] == 59:
 #                 fig1 = plt.figure(figsize=(20,3)); ax1 = plt.subplot2grid((6,4),(1,0),rowspan=4, colspan=4)
 #                 ax1.plot(range(len(score)), score[e[0], :, 0], c='red', lw=0.8)
 #                 plt.show()
-    
+    f.close()
 #     print task(0, 0, 0, 0, 8, 27, 4, days, buy_func, sell_func)
     np.save('KD_GC.npy', score)
     if is_print == False:
         idx = np.where(np.max(score) == score)
         for i in range(len(idx[0])):
-            print idx[0][i], idx[1][i], idx[2][i], np.max(score)
+            print sps[idx[0][i]], sls[idx[1][i]], ds[idx[2][i]], np.max(score)
 eval(days, buy_func='KD_GC', sell_func='KD_DC')

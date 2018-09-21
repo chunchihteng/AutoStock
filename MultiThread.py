@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from matplotlib.dates import DateFormatter, WeekdayLocator, \
     DayLocator, MONDAY, date2num, num2date
-from matplotlib.finance import candlestick_ohlc
+from mpl_finance import candlestick_ohlc
 import datetime
 import numpy as np
 from numpy import genfromtxt
@@ -12,8 +12,8 @@ import pandas as pd
 import time
 from draw import *
 from utils import *
-import matplotlib.pyplot as plt
-from matplotlib.finance import candlestick_ohlc
+#import matplotlib.pyplot as plt
+#from matplotlib.finance import candlestick_ohlc
 import os
 from Analyze import *
 from Pattern import *

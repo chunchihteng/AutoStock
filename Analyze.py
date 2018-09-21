@@ -4,27 +4,14 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from matplotlib.dates import DateFormatter, WeekdayLocator, \
     DayLocator, MONDAY, date2num, num2date
-from matplotlib.finance import candlestick_ohlc
+from mpl_finance import candlestick_ohlc
 import datetime
 import numpy as np
 from numpy import genfromtxt
-import os
-import pandas as pd
 import time
 from draw import *
 from utils import *
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
-from matplotlib.dates import DateFormatter, WeekdayLocator, \
-    DayLocator, MONDAY, date2num, num2date
-from matplotlib.finance import candlestick_ohlc
-import datetime
-import numpy as np
-from numpy import genfromtxt
 import os
-import pandas as pd
-import time
-from collections import OrderedDict
 import pandas as pd
 import Pattern
 from collections import OrderedDict
