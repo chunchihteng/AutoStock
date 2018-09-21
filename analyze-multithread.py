@@ -85,10 +85,10 @@ def draw_plot(data, buy_point_list, sell_point_list):
     ax2.plot(date.tolist(), np.ones(len(date))*50, c='black', lw=0.8)
     plt.show()
 
-def task(c, e1, e2, e3, sp, sl, d, days, buy_func, sell_func):
+def task(c, e1, e2, e3, e4, sp, sl, buy_d, sell_d, days, buy_func, sell_func):
     is_print = False
-    s = SellSignal(stop_profit_point=sp, stop_loss_point=sl, sell_func=sell_func)
-    b = BuySignal(updown_thr=5, buy_func=buy_func, bar_del=d)
+    s = SellSignal(stop_profit_point=sp, stop_loss_point=sl, sell_func=sell_func, bar_del=sell_d)
+    b = BuySignal(updown_thr=5, buy_func=buy_func, bar_del=buy_d)
     all_earn = []            
 
     for e, dt in enumerate(days.date):
@@ -121,7 +121,7 @@ def task(c, e1, e2, e3, sp, sl, d, days, buy_func, sell_func):
     all_earn = np.array(all_earn)*50
 #     print all_earn
 #     print (e1, e2, e3), all_earn
-    return (e1, e2, e3), (round(np.mean(all_earn), 2), round(np.min(all_earn), 2), round(np.max(all_earn), 2), np.sum([1 for e in all_earn if e >0]), np.sum([1 for e in all_earn if e <0]))
+    return (e1, e2, e3, e4), (round(np.mean(all_earn), 2), round(np.min(all_earn), 2), round(np.max(all_earn), 2), np.sum([1 for e in all_earn if e >0]), np.sum([1 for e in all_earn if e <0]))
 
 def eval(days, buy_func, sell_func):
     print buy_func, sell_func
@@ -129,29 +129,21 @@ def eval(days, buy_func, sell_func):
     sps = range(0, 20)
     sls = [5,6,7] 
     sls = range(0, 20)
-#    ds = [] 
-    ds = range(-30, 10)
-    score = np.zeros((len(sps), len(sls), len(ds)))
-    is_print = False
-    max_earn = -500000
+    buy_ds = range(-20, 10)
+    sell_ds = range(-20, 10)
+    score = np.zeros((len(sps), len(sls), len(buy_ds), len(sell_ds)))
     f = open('log.txt', 'w') 
     with ThreadPool(20) as pool:
-        for e, v in pool.process_items_concurrently(sps, sls, ds, days, buy_func, sell_func, process_func=task, max_items_in_flight=100):
-#            if v[0] >= 0:
+        for e, v in pool.process_items_concurrently(sps, sls, buy_ds, sell_ds, days, buy_func, sell_func, process_func=task, max_items_in_flight=100):
             print e, v
             f.write('-'.join([str(ee) for ee in list(e)])+','+','.join([str(vv) for vv in list(v)])+'\n')
-            score[e[0], e[1], e[2]] = v[0]
-#            if e[2] == ds[-1]:
- #               print e
-#             if e[1] == 59:
-#                 fig1 = plt.figure(figsize=(20,3)); ax1 = plt.subplot2grid((6,4),(1,0),rowspan=4, colspan=4)
-#                 ax1.plot(range(len(score)), score[e[0], :, 0], c='red', lw=0.8)
-#                 plt.show()
+            score[e[0], e[1], e[2], e[3]] = v[0]
+
     f.close()
 #     print task(0, 0, 0, 0, 8, 27, 4, days, buy_func, sell_func)
     np.save('KD_GC.npy', score)
     if is_print == False:
         idx = np.where(np.max(score) == score)
         for i in range(len(idx[0])):
-            print sps[idx[0][i]], sls[idx[1][i]], ds[idx[2][i]], np.max(score)
+            print sps[idx[0][i]], sls[idx[1][i]], buy_ds[idx[2][i]], sell_ds[idx[3][i]], np.max(score)
 eval(days, buy_func='KD_GC', sell_func='KD_DC')

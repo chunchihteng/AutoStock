@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from matplotlib.dates import DateFormatter, WeekdayLocator, \
     DayLocator, MONDAY, date2num, num2date
-from mpl_finance import candlestick_ohlc
+from matplotlib.finance import candlestick_ohlc
 import datetime
 import numpy as np
 from numpy import genfromtxt
@@ -12,8 +12,8 @@ import pandas as pd
 import time
 from draw import *
 from utils import *
-#import matplotlib.pyplot as plt
-#from matplotlib.finance import candlestick_ohlc
+import matplotlib.pyplot as plt
+from matplotlib.finance import candlestick_ohlc
 import os
 from Analyze import *
 from Pattern import *
@@ -74,14 +74,14 @@ class ThreadPool(object):
     def __exit__(self, *excinfo):
         self.finish()
 
-    def process_items_concurrently(self, sps, sls, ds, days, buy_func, sell_func, process_func=lambda x: x, pre_func=lambda x: x, post_func=lambda x: x, max_items_in_flight=None):
+    def process_items_concurrently(self, sps, sls, buy_ds, sell_ds, days, buy_func, sell_func, process_func=lambda x: x, pre_func=lambda x: x, post_func=lambda x: x, max_items_in_flight=None):
         if max_items_in_flight is None: max_items_in_flight = self.num_threads * 4
         assert max_items_in_flight >= 1
         results = []
         retire_idx = [0]
 
-        def task_func(c, e1, e2, e3, sp, sl, d, days, buy_func, sell_func):
-            return process_func(c, e1, e2, e3, sp, sl, d, days, buy_func, sell_func)
+        def task_func(c, e1, e2, e3, e4, sp, sl, buy_d, sell_d, days, buy_func, sell_func):
+            return process_func(c, e1, e2, e3, e4, sp, sl, buy_d, sell_d, days, buy_func, sell_func)
            
         def retire_result():
             out, out2 = self.get_result(task_func)
@@ -94,12 +94,13 @@ class ThreadPool(object):
         c = 0
         for e1, sp in enumerate(sps):
             for e2, sl in enumerate(sls):           
-                for e3, d in enumerate(ds): 
-                    results.append(None)
-                    self.add_task(func=task_func, args=(c, e1, e2, e3, sp, sl, d, days, buy_func, sell_func))
-                    while retire_idx[0] < c - max_items_in_flight + 2:
-                        for res in retire_result(): yield res
-                    c += 1
+                for e3, buy_d in enumerate(buy_ds): 
+                    for e4, sell_d in enumerate(sell_ds):
+                        results.append(None)
+                        self.add_task(func=task_func, args=(c, e1, e2, e3, e4, sp, sl, buy_d, sell_d, days, buy_func, sell_func))
+                        while retire_idx[0] < c - max_items_in_flight + 2:
+                            for res in retire_result(): yield res
+                        c += 1
         while retire_idx[0] < len(results):
             for res in retire_result(): yield res
 class ExceptionInfo(object):
