@@ -54,38 +54,13 @@ else:
     with open('0917-infos_50000.pkl', 'rb') as input:
         days = pickle.load(input)
 
-def draw_plot(data, buy_point_list, sell_point_list):
-    fig = plt.figure(figsize=(20,10)); ax = plt.subplot2grid((6,4),(1,0),rowspan=4, colspan=4)
-    fig.set_size_inches(20,10)
-    price = []
-    for i in range(len(data.high)):
-        price += [[data.open[i], data.high[i], data.low[i], data.close[i]]]
-    price = np.array(price)
-    low_price = np.min(price)
-    price = price - low_price
-    date = np.arange(len(price)) 
-    
-    K_graph = np.concatenate((date.reshape(len(price), 1), price), axis=1)
-    candlestick_ohlc(ax, K_graph, width=0.6, colorup='r', colordown='black')
-    ax.plot(date.tolist(), data.MA5-low_price, c='black', lw=0.8)
-    ax.plot(date.tolist()[19:], data.MA20-low_price, c='blue', lw=0.8)
-    ax.bar(date.tolist(), buy_point_list.tolist(), color='green')
-    ax.bar(date.tolist(), sell_point_list.tolist(), color='purple')
-    plt.show()
-    
-    fig1 = plt.figure(figsize=(20,3)); ax1 = plt.subplot2grid((6,4),(1,0),rowspan=4, colspan=4)
-    ax1.plot(date.tolist(), map(abs, data.K), c='red', lw=0.8)
-    ax1.plot(date.tolist(), map(abs, data.D), c='blue', lw=0.8)
-    ax1.plot(date.tolist(), 3*np.array(map(abs, data.D))-2*np.array(map(abs, data.K)), c='green', lw=0.8)
-    ax1.plot(date.tolist(), np.ones(len(date))*50, c='black', lw=0.8)
-    plt.show()
 
-    fig2 = plt.figure(figsize=(20,3)); ax2 = plt.subplot2grid((6,4),(1,0),rowspan=4, colspan=4)
-    ax2.plot(date.tolist(), map(abs, data.RSI), c='red', lw=0.8)
-    ax2.plot(date.tolist(), np.ones(len(date))*50, c='black', lw=0.8)
-    plt.show()
+def task(c, e_list, info):
+    sp, sl = info['sp'], info['sl']
+    buy_d, sell_d, buy_v, sell_v = info['buy_d'], info['sell_d'], info['buy_v'], info['sell_v']
+    days = info['days']
+    buy_func, sell_func = info['buy_func'], info['sell_func']
 
-def task(c, e1, e2, e3, e4, sp, sl, buy_d, sell_d, days, buy_func, sell_func):
     is_print = False
     s = SellSignal(stop_profit_point=sp, stop_loss_point=sl, sell_func=sell_func, bar_del=sell_d)
     b = BuySignal(updown_thr=5, buy_func=buy_func, bar_del=buy_d)
@@ -98,30 +73,20 @@ def task(c, e1, e2, e3, e4, sp, sl, buy_d, sell_d, days, buy_func, sell_func):
         buy_point_list = np.zeros((info_len))
         sell_point_list = np.zeros((info_len))
         for i in range(2, len(days.date[dt].high)):                    
-            if b.run_val(now_long_price, days.date[dt], i) == True:
+            if b.run_val(now_long_price, days.date[dt], i, val_type=buy_v) == True:
                 now_long_price += [days.date[dt].open[i]]
                 buy_point_list[i] = -10
-                if is_print == True:
-                    print "buy", i, now_long_price
                 continue
                 
-            #print "cur", i, days.date[dt].open[i], now_long_price
-            if s.run_val(now_long_price, days.date[dt].close[i-1], days.date[dt], i) == True:
+            if s.run_val(now_long_price, days.date[dt].close[i-1], days.date[dt], i, val_type=sell_v) == True:
                 delta = np.sum(days.date[dt].open[i]-np.array(now_long_price))-1.5*len(now_long_price)
                 earn += delta
-                if is_print == True:
-                    print "earn", days.date[dt].open[i], delta
                 now_long_price = []
                 sell_point_list[i] = -10 
                 
         all_earn += [earn]
-        if is_print == True:
-            print dt, earn
-            draw_plot(days.date[dt], buy_point_list, sell_point_list)
     all_earn = np.array(all_earn)*50
-#     print all_earn
-#     print (e1, e2, e3), all_earn
-    return (e1, e2, e3, e4), (round(np.mean(all_earn), 2), round(np.min(all_earn), 2), round(np.max(all_earn), 2), np.sum([1 for e in all_earn if e >0]), np.sum([1 for e in all_earn if e <0]))
+    return e_list, (round(np.mean(all_earn), 2), round(np.min(all_earn), 2), round(np.max(all_earn), 2), int(np.sum([1 for e in all_earn if e >0])), int(np.sum([1 for e in all_earn if e <0])))
 
 def eval(days, buy_func, sell_func):
     print buy_func, sell_func
@@ -131,19 +96,27 @@ def eval(days, buy_func, sell_func):
     sls = range(0, 20)
     buy_ds = range(-20, 10)
     sell_ds = range(-20, 10)
-    score = np.zeros((len(sps), len(sls), len(buy_ds), len(sell_ds)))
+    buy_val = range(136)
+    sell_val = range(3)
+    score = np.zeros((len(sps), len(sls), len(buy_ds), len(sell_ds), len(buy_val), len(sell_val)))
+
+    info = dict()
+    info['sps'], info['sls'] = sps, sls
+    info['buy_ds'], info['sell_ds'], info['buy_val'], info['sell_val'] = buy_ds, sell_ds, buy_val, sell_val
+    info['days'] = days
+    info['buy_func'], info['sell_func'] = buy_func, sell_func
+
     f = open('log.txt', 'w') 
     with ThreadPool(20) as pool:
-        for e, v in pool.process_items_concurrently(sps, sls, buy_ds, sell_ds, days, buy_func, sell_func, process_func=task, max_items_in_flight=100):
+        for e, v in pool.process_items_concurrently(info, process_func=task, max_items_in_flight=100):
             print e, v
             f.write('-'.join([str(ee) for ee in list(e)])+','+','.join([str(vv) for vv in list(v)])+'\n')
-            score[e[0], e[1], e[2], e[3]] = v[0]
+            score[e[0], e[1], e[2], e[3], e[4], e[5]] = v[0]
 
     f.close()
-#     print task(0, 0, 0, 0, 8, 27, 4, days, buy_func, sell_func)
-    np.save('KD_GC.npy', score)
     if is_print == False:
         idx = np.where(np.max(score) == score)
         for i in range(len(idx[0])):
-            print sps[idx[0][i]], sls[idx[1][i]], buy_ds[idx[2][i]], sell_ds[idx[3][i]], np.max(score)
+            print sps[idx[0][i]], sls[idx[1][i]], buy_ds[idx[2][i]], sell_ds[idx[3][i]], buy_val[idx[4][i]], sell_val[idx[5][i]], np.max(score)
+
 eval(days, buy_func='KD_GC', sell_func='KD_DC')
